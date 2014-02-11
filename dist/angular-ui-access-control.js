@@ -1,5 +1,5 @@
 'use strict';
-// Source: src/angular-access-control.js
+// Source: src/angular-ui-access-control.js
 angular.module('aomitayo.angular-ui-access-control', ['ui.router']);
 
 // Source: src/services/sentinel.js
