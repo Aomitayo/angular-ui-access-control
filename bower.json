@@ -1,6 +1,7 @@
 {
   "name": "angular-ui-access-control",
   "version": "0.0.1",
+  "main": "./dist/angular-ui-access-control.js",
   "authors": [
     "Adedayo Omitayo<adedayo.omitayo@flowswift.com>"
   ],
