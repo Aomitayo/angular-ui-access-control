@@ -1,5 +1,5 @@
 'use strict';
-/* globals console, describe, beforeEach, module, inject, it, expect, browser */
+/* globals console, describe, beforeEach, module, inject, it, expect, browser, sinon */
 /* jshint camelcase:false */
 
 describe('Sentinel', function(){
@@ -7,6 +7,9 @@ describe('Sentinel', function(){
 	var permissions;
 
 	beforeEach(function(){
+		var context = this;
+		context.noGrant = sinon.spy();
+		context.denied = sinon.spy();
 		module('aomitayo.angular-ui-access-control', function(sentinelProvider, $stateProvider, $urlRouterProvider){
 			$stateProvider
 			.state('root', {
@@ -16,6 +19,10 @@ describe('Sentinel', function(){
 			.state('home', {
 				url:'/home',
 				template:'<div class="home"></div>',
+			})
+			.state('otherstate', {
+				url:'/otherstate',
+				template:'<div class="otherstate"></div>',
 			})
 			.state('login', {
 				url:'/login',
@@ -34,8 +41,11 @@ describe('Sentinel', function(){
 			})
 			.watchState('home', {
 				requireAll:['login']
+			})
+			.watchState('otherstate', {
+				requireAll:['otherstate']
 			});
-
+			
 		});
 
 		inject(function(_sentinel_, _$state_, _$rootScope_, _$q_){
@@ -43,6 +53,9 @@ describe('Sentinel', function(){
 			$state = _$state_;
 			$rootScope = _$rootScope_;
 			$q = _$q_;
+
+			$rootScope.$on('sentinel.nogrant', context.noGrant);
+			$rootScope.$on('sentinel.denied', context.denied);
 		});
 	});
 
@@ -92,4 +105,24 @@ describe('Sentinel', function(){
 		expect($state.current.name).to.equal('home');
 	});
 
+	it('Broadcasts no grant', function(){
+		permissions = null;
+		$state.go('root');
+		sentinel.activate();
+		$rootScope.$digest();
+		expect($state.current.name).to.equal('root');
+		$state.go('home'); $rootScope.$digest();
+		expect(this.noGrant).to.have.been.called;
+		expect($state.current.name).to.equal('login');
+	});
+	it('Broadcasts denied', function(){
+		permissions = [];
+		$state.go('root');
+		sentinel.activate();
+		$rootScope.$digest();
+		expect($state.current.name).to.equal('root');
+		$state.go('home'); $rootScope.$digest();
+		expect(this.denied).to.have.been.called;
+		expect($state.current.name).to.equal('denied');
+	});
 });

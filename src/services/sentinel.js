@@ -42,9 +42,11 @@ angular.module('aomitayo.angular-ui-access-control')
 					}
 					else if(allow === null){	//no grants
 						self.redirectTo(self.options.whenNoGrants);
+						$rootScope.$broadcast('sentinel.nogrant', toState, toParams);
 					}
 					else{	//denied
 						self.redirectTo(self.options.whenDenied);
+						$rootScope.$broadcast('sentinel.denied', toState, toParams);
 					}
 				});
 			}
