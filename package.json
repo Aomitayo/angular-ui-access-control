@@ -1,7 +1,7 @@
 {
   "author": "",
   "name": "angular-ui-access-control",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Helps control access to angular-ui-router states ",
   "homepage": "",
   "dependencies": {
@@ -20,11 +20,13 @@
     "sinon-chai": "~2.5.0",
     "chai": "~1.9.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "grunt-bump": "0.0.13"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
+  "repository": "https://github.com/Aomitayo/angular-ui-access-control",
   "engines": {
     "node": "0.10.10"
   }
