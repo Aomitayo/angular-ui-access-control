@@ -1,7 +1,7 @@
 {
   "author": "",
   "name": "angular-ui-access-control",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Helps control access to angular-ui-router states ",
   "homepage": "",
   "dependencies": {
