@@ -82,10 +82,19 @@ angular.module('aomitayo.angular-ui-access-control')
 				any: $q.when(self.resolveArray(config.requireAny || data.requireAny || []) )
 			})
 			.then(function(args){
-				var ret =  args.grants &&  (
-					self.requireAll(args.all, args.grants) || self.requireAny(args.any, args.grants)
-				);
-				return ret;
+				if(args.all.length === 0 && args.any.length === 0){return true;}
+
+				if(args.grants === null || typeof args.grants === 'undefined'){return null;}
+
+				if(args.all.length > 0){
+					return self.requireAll(args.all, args.grants);
+				}
+
+				if(args.any.length > 0){
+					return self.requireAny(args.any, args.grants);
+				}
+
+				return false;
 			});
 		},
 		resolveArray: function(val, injectionContext, locals){

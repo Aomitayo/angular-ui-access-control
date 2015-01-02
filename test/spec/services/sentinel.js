@@ -4,7 +4,7 @@
 
 describe('Sentinel', function(){
 	var sentinelProvider, sentinel, $state, $rootScope, $q;
-	var permissions;
+	var granted, requiredForAll = ['permission1'], requiredForAny=['permission1', 'permission2'];
 
 	beforeEach(function(){
 		var context = this;
@@ -16,6 +16,18 @@ describe('Sentinel', function(){
 				url:'/',
 				template:'<div class="root"></div>',
 			})
+			.state('requiringAll', {
+				url:'/requiringAll',
+				template:'<div class="requiringAll"></div>',
+			})
+			.state('requiringAny', {
+				url:'/requiringAny',
+				template:'<div class="requiringAny"></div>',
+			})
+			.state('login', {
+				url:'/login',
+				template:'<div class="login"></div>',
+			})
 			.state('home', {
 				url:'/home',
 				template:'<div class="home"></div>',
@@ -23,10 +35,6 @@ describe('Sentinel', function(){
 			.state('otherstate', {
 				url:'/otherstate',
 				template:'<div class="otherstate"></div>',
-			})
-			.state('login', {
-				url:'/login',
-				template:'<div class="login"></div>',
 			})
 			.state('denied', {
 				url:'/denied',
@@ -36,14 +44,20 @@ describe('Sentinel', function(){
 			sentinelProvider = sentinelProvider;
 			sentinelProvider.setOptions({
 				grants:function(){
-					return permissions;
+					return granted;
 				}
 			})
 			.watchState('home', {
-				requireAll:['login']
+				requireAll:['home']
 			})
 			.watchState('otherstate', {
 				requireAll:['otherstate']
+			})
+			.watchState('requiringAll', {
+				requireAll:requiredForAll
+			})
+			.watchState('requiringAny', {
+				requireAny:requiredForAny
 			});
 			
 		});
@@ -66,63 +80,171 @@ describe('Sentinel', function(){
 		expect(sentinel).to.respondTo('deactivate');
 	});
 
-	it('Does not protect when not active', function(){
-		sentinel.deactivate();
-		$state.go('home'); $rootScope.$digest();
-		expect($state.current.name).to.equal('home');
+	describe('When Requiring All', function(){
+
+		it('Does not protect when not active', function(){
+			sentinel.deactivate();
+			$state.go('requiringAll'); $rootScope.$digest();
+			expect($state.current.name).to.equal('requiringAll');
+		});
+
+		it('Broadcasts \'sentinel.nogrant\' when there are no grants', function(){
+			granted = null;
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAll'); $rootScope.$digest();
+			expect(this.noGrant).to.have.been.called;
+			expect($state.current.name).to.equal('login');
+		});
+
+		it('Broadcasts \'sentinel.denied\' when denying access', function(){
+			granted = [];
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAll'); $rootScope.$digest();
+			expect(this.denied).to.have.been.called;
+			expect($state.current.name).to.equal('denied');
+		});
+
+		it('Prompts for login when there are no grants', function(){
+			granted = null;
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAll'); $rootScope.$digest();
+
+			expect($state.current.name).to.equal('login');
+		});
+
+		it('Denies when grants are inadequate', function(){
+			var permissions = [
+				[[], ['permission1']],
+				[['permission1'], ['permission2']],
+				[[], ['permission1', 'permission2']],
+				[['permission2'], ['permission1', 'permission2']],
+			];
+			permissions.forEach(function(v, k){
+				granted = v[0];
+				requiredForAll.splice.apply(requiredForAll, [0, requiredForAll.length].concat(v[1]));
+
+				$state.go('root');
+				sentinel.activate();
+				$rootScope.$digest();
+				expect($state.current.name).to.equal('root');
+				$state.go('requiringAll'); $rootScope.$digest();
+
+				expect($state.current.name).to.equal('denied');
+			});
+		});
+
+		it('Allows when grants are adequate', function(){
+			var permissions = [
+				[['permission1'], ['permission1']],
+				[['permission1', 'permission2'], ['permission1', 'permission2']],
+				[['permission2', 'permission1'], ['permission1', 'permission2']],
+			];
+			permissions.forEach(function(v, k){
+				granted = v[0];
+				requiredForAll.splice.apply(requiredForAll, [0, requiredForAll.length].concat(v[1]));
+
+				$state.go('root');
+				sentinel.activate();
+				$rootScope.$digest();
+				expect($state.current.name).to.equal('root');
+				$state.go('requiringAll'); $rootScope.$digest();
+
+				expect($state.current.name).to.equal('requiringAll');
+			});
+		});
 	});
 
-	it('Prompts for login when there are no grants', function(){
-		permissions = null;
-		$state.go('root');
-		sentinel.activate();
-		$rootScope.$digest();
-		expect($state.current.name).to.equal('root');
-		$state.go('home'); $rootScope.$digest();
+	describe('When Requiring Any', function(){
 
-		expect($state.current.name).to.equal('login');
-	});
+		it('Does not protect when not active', function(){
+			sentinel.deactivate();
+			$state.go('requiringAny'); $rootScope.$digest();
+			expect($state.current.name).to.equal('requiringAny');
+		});
 
-	it('Denies when grants are inadequate', function(){
-		permissions = [];
-		$state.go('root');
-		sentinel.activate();
-		$rootScope.$digest();
-		expect($state.current.name).to.equal('root');
-		$state.go('home'); $rootScope.$digest();
+		it('Broadcasts \'sentinel.nogrant\' when there are no grants', function(){
+			granted = null;
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAny'); $rootScope.$digest();
+			expect(this.noGrant).to.have.been.called;
+			expect($state.current.name).to.equal('login');
+		});
 
-		expect($state.current.name).to.equal('denied');
-	});
+		it('Broadcasts \'sentinel.denied\' when denying access', function(){
+			granted = [];
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAny'); $rootScope.$digest();
+			expect(this.denied).to.have.been.called;
+			expect($state.current.name).to.equal('denied');
+		});
 
-	it('Allows when grants are adequate', function(){
-		permissions = ['login'];
-		$state.go('root');
-		sentinel.activate();
-		$rootScope.$digest();
-		expect($state.current.name).to.equal('root');
-		$state.go('home'); $rootScope.$digest();
+		it('Prompts for login when there are no grants', function(){
+			granted = null;
+			$state.go('root');
+			sentinel.activate();
+			$rootScope.$digest();
+			expect($state.current.name).to.equal('root');
+			$state.go('requiringAny'); $rootScope.$digest();
 
-		expect($state.current.name).to.equal('home');
-	});
+			expect($state.current.name).to.equal('login');
+		});
 
-	it('Broadcasts no grant', function(){
-		permissions = null;
-		$state.go('root');
-		sentinel.activate();
-		$rootScope.$digest();
-		expect($state.current.name).to.equal('root');
-		$state.go('home'); $rootScope.$digest();
-		expect(this.noGrant).to.have.been.called;
-		expect($state.current.name).to.equal('login');
-	});
-	it('Broadcasts denied', function(){
-		permissions = [];
-		$state.go('root');
-		sentinel.activate();
-		$rootScope.$digest();
-		expect($state.current.name).to.equal('root');
-		$state.go('home'); $rootScope.$digest();
-		expect(this.denied).to.have.been.called;
-		expect($state.current.name).to.equal('denied');
+		it('Denies when grants are inadequate', function(){
+			var permissions = [
+				[[], ['permission1']],
+				[['permission1'], ['permission2']],
+				[[], ['permission1', 'permission2']],
+				[['permission3'], ['permission1', 'permission2']],
+			];
+			permissions.forEach(function(v, k){
+				granted = v[0];
+				requiredForAny.splice.apply(requiredForAny, [0, requiredForAny.length].concat(v[1]));
+
+				$state.go('root');
+				sentinel.activate();
+				$rootScope.$digest();
+				expect($state.current.name).to.equal('root');
+				$state.go('requiringAny'); $rootScope.$digest();
+
+				expect($state.current.name).to.equal('denied');
+			});
+		});
+
+		it('Allows when grants are adequate', function(){
+			var permissions = [
+				[['permission1'], ['permission1']],
+				[['permission1'], ['permission1', 'permission2']],
+				[['permission2'], ['permission1', 'permission2']],
+				[['permission1', 'permission2'], ['permission1', 'permission2']],
+				[['permission2', 'permission1'], ['permission1', 'permission2']],
+			];
+			permissions.forEach(function(v, k){
+				granted = v[0];
+				requiredForAny.splice.apply(requiredForAny, [0, requiredForAny.length].concat(v[1]));
+
+				$state.go('root');
+				sentinel.activate();
+				$rootScope.$digest();
+				expect($state.current.name).to.equal('root');
+				$state.go('requiringAny'); $rootScope.$digest();
+
+				expect($state.current.name).to.equal('requiringAny');
+			});
+		});
 	});
 });
