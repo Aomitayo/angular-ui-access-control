@@ -10,7 +10,7 @@ describe('Sentinel', function(){
 		var context = this;
 		context.noGrant = sinon.spy();
 		context.denied = sinon.spy();
-		module('aomitayo.angular-ui-access-control', function(sentinelProvider, $stateProvider, $urlRouterProvider){
+		module('aomitayo.angular-ui-access-control', function(permissionsConfigProvider, sentinelProvider, $stateProvider, $urlRouterProvider){
 			$stateProvider
 			.state('root', {
 				url:'/',
@@ -41,6 +41,10 @@ describe('Sentinel', function(){
 				template:'<div class="denied"></div>',
 			});
 			
+			permissionsConfigProvider.grantsFn = function(){
+				return granted;
+			};
+
 			sentinelProvider = sentinelProvider;
 			sentinelProvider.setOptions({
 				grants:function(){
