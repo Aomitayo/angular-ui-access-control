@@ -71,7 +71,7 @@ angular.module('aomitayo.angular-ui-access-control')
 			injectionContext = injectionContext || {};
 			locals = locals || {};
 			//check val
-			if(!angular.isFunction(val) && !angular.isArray(val)){
+			if(val && !angular.isFunction(val) && !angular.isArray(val)){
 				throw new Error('Invalid type:  Array, function or Injection Annotated function expected');
 			}
 			//resolve value
@@ -98,6 +98,7 @@ angular.module('aomitayo.angular-ui-access-control')
 		}]
 	};	
 }]);
+
 // Source: src/services/sentinel.js
 /* jshint unused: false */
 
